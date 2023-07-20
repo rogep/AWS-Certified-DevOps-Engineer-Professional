@@ -91,3 +91,59 @@ When to use
 * When you want to re-use resources
 
 
+## StackSets
+Allow you to use cloudformation to deploy across many accounts & regions.
+* Think of stacksets as **containers** in an **admin account**
+* contain stack instances which reference stacks (1 region in 1 AWS account)
+	* Remains even due to failures
+* Created in target accounts (an AWS account)
+* Security = **self-managed** or **service-managed**
+* Terms:
+	* Concurrent Accounts
+		* Throttles deployments to only deploy CONCURRENT stacks at a time (i.e. conc=2 for 10 deployments does 5 batches)
+	* Failure tolerance
+		* Amount of deployments that can fail before the stackset fails
+	* Retain stacks
+		* Removes stack instances (but can retain them)
+
+## DelectionPolicy
+If you **delete** a logical resource from a template, then by default, the phhysical resource is deleted.
+To overcome this, you can use a deletion policy using:
+* DELETE (default);
+* RETAIN; or,
+* SNAPSHOT (if supported).
+	* EBS Volumne, ElastiCache, Neptune, RDS, Redshift
+	* Snapshots continue past the Stack lifetime ($$)
+* ONLY APPLIES TO DELETE -- NOT REPLACE
+	* DATA IS LOST ON REPLACE
+
+## Stack Roles
+* CFN uses the **permissions** of the **logged in identity**
+* Which means you need permissions for AWS
+* CFN can assume a role to gain the permissions
+* The identity creating the stack doesn't need resource permissions - only **PassRole**
+
+## CloudFormation::Init
+Configuration management system, runs once during bootstrapping userdata on EC2, stored in a CF template
+* AWS::CloudFormation::Init part of an EC2 instance logical resource
+* Procedural - HOW (User-Data)
+* Desired Date - WHAT (cfin-init)
+	* if something is already true, nothing happens
+
+## cfn-hup
+* If CloudFormation::Init is updated **it isn't rerun**
+* cfn-up helper is a daemon which canbe installed and detects changes in resource metadata
+* Update stack -> update ec2
+
+## ChangeSets
+This is analagous to Terraform **PLAN**! The usual CREATE/DELETE/CHANGE display.
+
+## Custom Resources
+CloudFormation does not support everything in AWS. This is like Terraform NULL RESOURCES
+* also allows integration with external systems
+* Normally use thsi to upload items to s3 after creation, or delete s3 items before deletion (otherwise error)
+* Can privison non-aws resources (cool)
+* Sends data to an endpoint (lambda/sns) and gets data back from something (lambda is invoked and provided with event information)
+	* Sends a success response to a response URL
+
+
