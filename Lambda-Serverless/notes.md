@@ -82,3 +82,130 @@ Lambdas (and Fargate) are ran inside of a separate AWS Lambda Service VPC and in
   - INVOKE - Runs the function Handler (Cold start)
   - NEXT INVOKE - WARM START - same environment
   - SHUTDOWN - Terminate the environment
+
+### Lambda Layers
+
+Layers allow new runtimes and allow libraries to be externalised (/opt). Deployment ZIPs are smaller,
+with shared libraries reused between functions.
+
+### Lambda & ALB Integration
+
+Using mutli-value headers, the load balancer uses both key values sent by the client and sends you an event that includes query string parameters
+using `multiValueQueryStringParameters`
+
+- without multi-value headers, the ALB sends the last value sent by the client
+- `queryStringParameters` vs `multiValueQueryStringParameters`
+
+### Lambda Resource Policy
+
+Every lambda functions have two forms of security
+
+- Execution Role
+
+  - Assumed by the function
+  - determines **WHAT** the lambda function **CAN DO**
+
+- Resource Policy
+  - **WHO** can do **WHAT** with the lambda function
+  - A use case can be multi account invocations
+  - Cross account requires Identity (OUT) **AND** Resource Policy (IN)
+  - When a service needs to invoke a lambda
+
+## API Gateway
+
+A service that lets you create and manage APIs.
+
+- Acts as an endpoint/entry-point for applications
+- Sits between applications & integrations (services)
+- Can connect to services/endpoints in AWS or on-premises
+- HTTP, REST, Websocket APIs
+
+### Authentication
+
+- Cognito user pools
+- Lambda-based authorisation (bearer token)
+  - A lambda authoriser is called
+  - return an IAM policy and a principal identifier
+  - returns 403 ACCESS denied to client if invalid
+
+### Endpoint types
+
+- Edge optimised
+- Routed to the nearest cloudfront POP
+- regional - clients in the same region
+- Private - endpoint accessible only within a VPC interface endpoint
+
+### Stages
+
+APIs are deployed to stages -- each stage has one deployment
+
+- customers, dev, prod etc
+- can rollback
+- canary deployments (certain % of traffic is sent to the canary and can be adjusted over time or promote)
+
+### Error codes
+
+- 4XX Client Error
+  - invalid request on client side
+  - 400 Bad request - Generic
+  - 403 Access denied - Authoriser denies - WAF Filtered
+  - 429 API gateway can throttle - exceeded throttle limit
+- 5XX Server error
+  - Valid request, backend issue
+  - 502 Bad gateway exception - bad output returned by lambda
+  - 503 Service unavailable - backing endpoint offline? Major service issues
+  - 504 Integration failure/timeout - 29s limit
+
+### Caching
+
+- Configured per stage
+- Without a cache, services are triggered each request
+- Cache TTL default is 300 seconds
+  - Configurable min 0 and max 3600s
+  - Can be encrypted
+  - Cache size 500MB to 237GB
+- Calls are only made to backend integrations if a request is a cache miss
+
+### Methods and Resources
+
+Methods are where integrations are configured which provide the functionality of an API e.g. lambda, HTTP, & AWS service (GET, POST, etc).
+Resources are points in the API tree `/route`
+
+### Integrations
+
+Three phases
+
+1. Request (authorise, validate, transform)
+2. Integrations -- backend (lambda, http, aws services...)
+
+- proxy implies just passing the data through
+
+3. Response (Transform, prepare, return)
+
+- API methods (client) are integrated with a backend endpoint
+  Types:
+- MOCK: Used for testing -- no backend involvement
+- HTTP: Backend HTTP Endpoint
+- mapping templates required
+- HTTP Proxy: Pass through to integration unmodified, return to the client unmodified (backend need to use supported format)
+- AWS - Lets an API expose AWS service actions
+  - need to manually configure mappings for method, int, response (complex)
+  - mapping templates required
+- AWS_PROXY (Lambda) - Low admin overhead lambda endpoint
+  - Lambda needs to be able to interpret the event for data conversion
+
+Mapping templates
+
+- used for AWS and HTTP (non-proxy) integrations
+- modify and rename parameters
+- modify the body or headers of the request
+- filtering - removing anything which isnt needed
+- uses VTL (velocity template language)
+- common exam scenario
+  - REST API (on API gateway) to a SOAP API .. transform the request using a mapping template
+
+### Deployments
+
+Like lambda, changes are not live until you publish the deployment
+
+- unlike lambda, they are not immutable and can be rolled back
